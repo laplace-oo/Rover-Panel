@@ -15,7 +15,7 @@ __STREAM_URL = [
     # "http://192.168.137.100:5000/video_feed0",
     # "http://192.168.137.100:5000/video_feed1",
     # "http://192.168.137.100:5000/video_feed2"
-    "http://192.168.137.101:5000/video_feed0",
+    "http://localhost:8081",
     "http://192.168.137.101:5000/video_feed1",
     "http://192.168.137.101:5000/video_feed2"
 
@@ -36,6 +36,10 @@ __CAM_CONFIGS = [
         "fps": 30.0,
         # 分辨率
         "resolution": (40, 30),
+
+        "is_active": True,
+
+        "last_frame": None,
     },
     {
         "is_recording": False,
@@ -43,17 +47,22 @@ __CAM_CONFIGS = [
         "name": "two",
         "fps": 30.0,
         "resolution": (40, 30),
-        # 缓存帧 
-        "latest_frame": None,
-        # 判断是否在进行测距或者其他处理
-        "switch": False,
+
+        "is_active": True,
+
+        "last_frame": None,
     },
     {
         "is_recording": False,
         "video_writer": None,
         "name": "under",
         "fps": 30.0,
+        
         "resolution": (40, 30),
+        
+        "is_active": True,
+        
+        "last_frame": None,
     },
 ]
 
