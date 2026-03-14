@@ -18,9 +18,9 @@ def main(page: ft.Page):
     
     # ========== 0. 深度仪表板 ==========
     # 创建深度仪表板对象
-    status_panel = status_board(page)
+    # status_panel = status_board(page)
     # 获取仪表板的容器对象
-    status_board_container = status_panel.get_panel()
+    # status_board_container = status_panel.get_panel()
 
     # ========== 1. 基础配置 ==========
     page.title = "树莓派监控"
@@ -51,21 +51,35 @@ def main(page: ft.Page):
 
         config = __CAM_CONFIGS[cam_index]
 
-        # 生成一个包含当前年月日时分秒的时间戳字符串
-        timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-
+        
         # 存放录像的完整路径
-        record_path = os.path.join(__RECORD_DIR, config["name"], f"video_{str(cam_index)}_{timestamp}.mp4")
-        print(record_path)
+        record_path = os.path.join(__RECORD_DIR, config["name"])
 
         # 开始录制
         if not config["is_recording"]:
 
+            if config.get["last_frame"] is None:
+                status_text[cam_index].value is None
+                status_text[cam_index].value = "尚未接收到画面，无法录制"
+                page.update()
+                return
+
+            height, width = config["last_frame"].shape[:2]
+            current_res = (width, height)
+
+            # 生成一个包含当前年月日时分秒的时间戳字符串
+            timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+
             # 检测用于存放录像的文件夹是否存在，不存在就创建一个
             os.makedirs(os.path.dirname(record_path), exist_ok=True)
+                
+            file_path = os.path.join(record_path, f"video_{str(cam_index)}_{timestamp}.mp4")
+
+
 
             # 写入视频流（完整存放路径，编码格式标准，帧率，分辨率）
-            config["video_writer"] = cv2.VideoWriter(record_path, fourcc, config["fps"], config["resolution"])
+            config["video_writer"] = cv2.VideoWriter(record_path, fourcc, config.get("fps", 30), current_res)
 
             # 检测录像状态
             if config["video_writer"].isOpened():
@@ -117,6 +131,7 @@ def main(page: ft.Page):
             width=200,
             height=50,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8),),
+
         ),
         # 屏幕2：双目摄像头按钮
         ft.ElevatedButton(
@@ -140,53 +155,28 @@ def main(page: ft.Page):
         ),
     ]
 
-    # 测距按钮的逻辑函数
-    def toggle_depth(e):
-        config = __CAM_CONFIGS[1]
-        if not config["switch"]:
-
-            config["switch"] = True
-            two_eyes_button.text = "停止测距"
-            two_eyes_button.bgcolor = ft.colors.RED_500
-            config["thread"] = threading.Thread(target=gd, args=(config,),daemon=True)
-            config["thread"].start()
-
-        else:
-
-            config["switch"] = False
-            two_eyes_button.text = "开始测距"
-            two_eyes_button.bgcolor = ft.colors.PURPLE
-
-
-        page.update()
-        
-    # 双目显示测距按钮
-    two_eyes_button = ft.ElevatedButton(
-        text="开始测距",
-        on_click=lambda e:toggle_depth(e),
-        bgcolor = ft.colors.PURPLE,
-        color=ft.colors.WHITE,
-        width=200,
-        height=50,
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8),),
-    )
-
     # 屏幕1：主摄像头
     screen1 = ft.Container(
-        content=ft.Row(
+        content=ft.Stack(
             [
                 video_image[0],
-                ft.Column(
-                    [
-                        record_button[0],
-                        status_text[0],
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
+
+                ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            record_button[0],
+                            status_text[0],
+                        ],
+                        alignment=ft.MainAxisAlignment.END,
+                        horizontal_alignment=ft.CrossAxisAlignment.END,
+                        spacing=10,
+                    ),
+                    bottom=20,
+                    right=20,
+                    width=200,
+                    height=100,
                 ),
             ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=20
         ),
         expand=True,  # 占满父容器
         alignment=ft.alignment.center,
@@ -195,24 +185,32 @@ def main(page: ft.Page):
 
     # 屏幕2：双目摄像头
     screen2 = ft.Container(
-        content=ft.Column(
+        content=ft.Stack(
             [
                 video_image[1],
-                ft.Row(
-                    [record_button[1]],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
+                
+                ft.Container(
+                    content=ft.Column(
+
+                        controls=[
+
+                            record_button[1],
+                            status_text[1],
+
+                        ],
+
+                        alignment=ft.MainAxisAlignment.END,
+                        horizontal_alignment=ft.CrossAxisAlignment.END,
+                        spacing=10,
+                    ),
+
+                    bottom=20,
+                    right=20,
+                    width=200,
+                    height=100,
                 ),
-                status_text[1],
-                ft.Row(
-                    [two_eyes_button],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
-                ),
+                
             ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=20
         ),
         expand=True,  # 占满父容器
         alignment=ft.alignment.center,
@@ -221,20 +219,31 @@ def main(page: ft.Page):
 
     # 屏幕3：底部摄像头
     screen3 = ft.Container(
-        content=ft.Row(
+        content=ft.Stack(
             [
                 video_image[2],
-                ft.Column(
-                    [
-                        record_button[2],
-                        status_text[2],
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
+
+                ft.Container(
+
+                    content=ft.Column(
+
+                        controls=[
+                            record_button[2],
+                            status_text[2],
+                        ],
+
+                        alignment=ft.MainAxisAlignment.END,
+                        horizontal_alignment=ft.CrossAxisAlignment.END,
+                        spacing=10,
+                    ),
+
+                    bottom=20,
+                    right=20,
+                    width=200,
+                    height=100,
                 ),
+
             ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=20
         ),
         expand=True,  # 占满父容器
         alignment=ft.alignment.center,
@@ -252,13 +261,10 @@ def main(page: ft.Page):
         # 显示目标屏幕
         if screen_num == 1:
             screen1.visible = True
-            status_panel.set_camera_json(1)
         elif screen_num == 2:
             screen2.visible = True
-            status_panel.set_camera_json(2)
         elif screen_num == 3:
             screen3.visible = True
-            status_panel.set_camera_json(3)
 
         
         # 更新页面（必须）
@@ -320,21 +326,21 @@ def main(page: ft.Page):
         ft.Stack(
             [
                 ft.Column([screen_stack, bottom_nav], expand=True, spacing=0),
-                ft.Container(
-                    content=status_board_container,
-                    top=10,
-                    right=10,
-                )
+                # ft.Container(
+                #     content=status_board_container,
+                #     top=10,
+                #     right=10,
+                # )
             ],
             expand=True
         )
     )
     
-    try:
-        threading.Thread(target=start_control_server(status_panel), daemon=True).start()
-        status_panel.set_controller_status("手柄线程已启动\r\n正在连接控制服务器...")
-    except Exception as e:
-        status_panel.set_controller_status("手柄线程启动失败\r\n{e}")
+    # try:
+    #     threading.Thread(target=start_control_server(status_panel), daemon=True).start()
+    #     status_panel.set_controller_status("手柄线程已启动\r\n正在连接控制服务器...")
+    # except Exception as e:
+    #     status_panel.set_controller_status("手柄线程启动失败\r\n{e}")
 
 
 # python=3.7.1
