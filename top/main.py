@@ -8,6 +8,7 @@ from stream_update import update_video_stream as uvs
 from config import __CAM_CONFIGS, __RECORD_DIR, __STREAM_URL
 from control_server import start_control_server
 from status_dash_board import status_board
+from clean_up import register_cleanup_handlers, cleanup_in_main
 
 # 生成视频编码格式标准（4-Character Code），使用mp4v编码
 fourcc = cv2.VideoWriter.fourcc(*"mp4v")
@@ -346,12 +347,21 @@ def main(page: ft.Page):
 # python=3.7.1
 if __name__ == "__main__":
     
-    ft.app(
-        target=main,
-        view=ft.AppView.FLET_APP,  # 桌面应用
-        # view=ft.WEB_BROWSER,       # 网页应用
-        # port=8550,
-    )
-    
+    # 注册清理处理器
+    register_cleanup_handlers()
 
+    try:
+        ft.app(
+            target=main,
+            view=ft.AppView.FLET_APP,  # 桌面应用
+            # view=ft.WEB_BROWSER,       # 网页应用
+            # port=8550,
+        )
+    except KeyboardInterrupt:
+        print("\n接收到键盘中断")
+    except Exception as e:
+        print(f"\n程序异常: {e}")
+    finally:
+        # 确保清理资源
+        cleanup_in_main()
 
