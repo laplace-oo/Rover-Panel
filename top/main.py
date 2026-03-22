@@ -277,12 +277,13 @@ def main(page: ft.Page):
 
     # 页面关闭时清理资源
     def on_close(e):
-        for recorder in recorders:
-            if recorder:
-                recorder.stop()
-        for config in __CAM_CONFIGS:
-            if config.get("video_writer"):
-                config["video_writer"].release()
+        # 只清理双目录制器
+        if recorder:
+            recorder.stop()
+        
+        # 只清理双目的 video_writer
+        if __CAM_CONFIGS[1].get("video_writer"):
+            __CAM_CONFIGS[1]["video_writer"].release()
     
     page.on_close = on_close
 
