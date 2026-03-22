@@ -1,66 +1,155 @@
-import cv2
-import requests
-import numpy as np
-import base64
+import flet as ft
+import threading
 import time
+import base64
+import requests
+import cv2
+import numpy as np
+from collections import deque
 
-def update_video_stream(stream_url, video_image, status_text, page, cam_config):
-    print("视频流启动!")
-    bytes_buffer = b""
-    boundary = b"--frame\r\n"
+class SmoothVideoPlayer:
+    """平滑视频播放器 - 支持画面旋转"""
     
-    # ⭐ 新增：帧率控制
-    last_update_time = 0
-    update_interval = 1/30  # 30fps显示限制
+    def __init__(self, snapshot_url, width, height, fps=20, rotate=0):
+        self.snapshot_url = snapshot_url
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.rotate = rotate  # 正确接收 rotate 参数
+        self.is_running = True
+        self.frame_count = 0
+        
+        self.current_image = ft.Image(
+            width=width,
+            height=height,
+            fit=ft.ImageFit.CONTAIN,
+            border_radius=ft.border_radius.all(10),
+        )
+        
+        self.switcher = ft.AnimatedSwitcher(
+            content=self.current_image,
+            duration=50,
+            switch_in_curve=ft.AnimationCurve.EASE_IN,
+            switch_out_curve=ft.AnimationCurve.EASE_OUT,
+        )
+        
+        self.frame_queue = deque(maxlen=2)
+        self.session = requests.Session()
+        
+    def get_widget(self):
+        return self.switcher
     
-    try:
-        # 长连接获取视频流
-        response = requests.get(stream_url, stream=True, timeout=5)
-        if response.status_code != 200:
-            status_text.value = f"连接失败：{response.status_code}"
-            page.update()
-            return
-
-        status_text.value = "视频流连接成功" + cam_config["name"]
-        page.update()
-
-        for chunk in response.iter_content(chunk_size=4096):  # 增大chunk减少循环
-            if not chunk:
-                break
-
-            bytes_buffer += chunk
-
-            # 解析multipart分块
-            if boundary in bytes_buffer:
-                parts = bytes_buffer.split(boundary)
-                bytes_buffer = parts[-1]  # 保留不完整部分
+    def start(self):
+        threading.Thread(target=self._fetch_loop, daemon=True).start()
+        threading.Thread(target=self._update_loop, daemon=True).start()
+    
+    def _rotate_image(self, image_data):
+        """旋转图片"""
+        if self.rotate == 0:
+            return image_data
+        
+        try:
+            nparr = np.frombuffer(image_data, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if img is None:
+                return image_data
+            
+            if self.rotate == 90:
+                img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+            elif self.rotate == 180:
+                img = cv2.rotate(img, cv2.ROTATE_180)
+            elif self.rotate == 270:
+                img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            
+            _, encoded = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            return encoded.tobytes()
+            
+        except Exception as e:
+            print(f"旋转失败: {e}")
+            return image_data
+    
+    def _fetch_loop(self):
+        """获取图片线程"""
+        while self.is_running:
+            try:
+                url = f"{self.snapshot_url}?t={time.time()}"
+                resp = self.session.get(url, timeout=0.5)
                 
-                for part in parts[:-1]:  # 处理所有完整帧
-                    if part:
-                        header_end = part.find(b"\r\n\r\n")
-                        if header_end != -1:
-                            # ⭐ 关键优化1：直接使用原始JPEG数据
-                            jpeg_data = part[header_end + 4:]
-                            
-                            # ⭐ 关键优化2：只解码需要处理的帧
-                            # 录制需要解码成OpenCV格式
-                            if cam_config["is_recording"] and cam_config["video_writer"] is not None:
-                                frame = cv2.imdecode(
-                                    np.frombuffer(jpeg_data, np.uint8), 
-                                    cv2.IMREAD_COLOR
-                                )
-                                if frame is not None:
-                                    cam_config["video_writer"].write(frame)
-                                    cam_config["latest_frame"] = frame  # 直接赋值，不用copy()
-                            
-                            # ⭐ 关键优化3：显示直接用JPEG转Base64，避免编解码
-                            current_time = time.time()
-                            if current_time - last_update_time > update_interval:
-                                # 直接使用原始JPEG转Base64
-                                video_image.src_base64 = base64.b64encode(jpeg_data).decode()
-                                page.update()
-                                last_update_time = current_time
-                            
-    except Exception as e:
-        status_text.value = f"连接异常：{str(e)}"
+                if resp.status_code == 200:
+                    if self.rotate != 0:
+                        rotated_data = self._rotate_image(resp.content)
+                        self.frame_queue.append(rotated_data)
+                    else:
+                        self.frame_queue.append(resp.content)
+            except Exception:
+                pass
+            
+            time.sleep(1 / self.fps)
+    
+    def _update_loop(self):
+        """更新UI线程"""
+        last_frame = None
+        
+        while self.is_running:
+            if self.frame_queue:
+                frame_data = self.frame_queue[-1]
+                
+                if frame_data != last_frame:
+                    last_frame = frame_data
+                    self.frame_count += 1
+                    
+                    b64_str = base64.b64encode(frame_data).decode()
+                    
+                    new_image = ft.Image(
+                        src_base64=b64_str,
+                        width=self.width,
+                        height=self.height,
+                        fit=ft.ImageFit.CONTAIN,
+                        border_radius=ft.border_radius.all(10),
+                    )
+                    
+                    self.switcher.content = new_image
+                    self.switcher.update()
+            
+            time.sleep(1 / self.fps)
+    
+    def stop(self):
+        self.is_running = False
+        self.session.close()
+
+
+def update_video_stream(stream_url, video_widget, status_text, page, cam_config, rotate=None):
+    """
+    创建视频播放器
+    
+    Args:
+        stream_url: 流地址
+        video_widget: 视频组件
+        status_text: 状态文本
+        page: 页面对象
+        cam_config: 配置（包含 id）
+        rotate: 旋转角度，如果为 None 则根据 id 自动判断
+    """
+    snapshot_url = stream_url.replace('/stream', '/snapshot')
+    
+    width = video_widget.width if video_widget.width else 800
+    height = video_widget.height if video_widget.height else 600
+    
+    # 自动判断旋转角度
+    if rotate is None:
+        cam_id = cam_config.get("id", 0)
+        if cam_id == 1:  # 前置摄像头 (id=1)
+            rotate = 180
+        else:
+            rotate = 0
+    
+    # 正确传递 rotate 参数
+    player = SmoothVideoPlayer(snapshot_url, width, height, fps=20, rotate=rotate)
+    player.start()
+    
+    if status_text:
+        status_text.value = f"视频流连接成功" + (f" (旋转{rotate}°)" if rotate else "")
         page.update()
+    
+    return player

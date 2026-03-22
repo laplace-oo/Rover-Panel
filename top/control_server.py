@@ -16,6 +16,7 @@ def receive_messages(client_socket):
 
         except Exception as e:
             print(f"接收消息时出现错误: {e}")
+            
             break
 
 def send_messages(client_socket):
@@ -41,7 +42,7 @@ def start_control_server(status_board):
         # 连接到服务器
         Rover_client.connect(("192.168.137.101", 8888))
 
-        status_board.set_controller_status("手柄已连接到服务器。")
+#        status_board.set_controller_status("手柄已连接到服务器。")
 
         # 创建线程来处理接收消息
         receive_thread = threading.Thread(target=receive_messages, args=(Rover_client,))
@@ -51,7 +52,7 @@ def start_control_server(status_board):
         send_thread = threading.Thread(target=send_messages, args=(Rover_client,))
         send_thread.start()
 
-        status_board.set_controller_status("控制服务器线程已启动\r\n正在发送和接收消息...")
+ #       status_board.set_controller_status("控制服务器线程已启动\r\n正在发送和接收消息...")
 
         # 等待接收线程结束
         receive_thread.join()
@@ -61,7 +62,7 @@ def start_control_server(status_board):
     
     except Exception as e:
 
-        status_board.set_controller_status(f"连接服务器时出现错误: {e}")
+ #       status_board.set_controller_status(f"连接服务器时出现错误: {e}")
         print(f"连接服务器时出现错误: {e}")
     finally:
         # 关闭连接

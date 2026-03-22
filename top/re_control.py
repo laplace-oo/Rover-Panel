@@ -22,7 +22,7 @@ def remote_control():
         # name = joystick.get_name()
         # Value.append(name)
 
-        for i in range(7):
+        for i in range(8):
             axis = joystick.get_axis(i)
             if i < 4:  # 这是几个摇杆
                 axis = round(map(axis, -1, 1, 0, 255))

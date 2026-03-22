@@ -12,12 +12,9 @@ __HTTP_PORT = 5000
 """
 # 更换成流的url
 __STREAM_URL = [
-    # "http://192.168.137.100:5000/video_feed0",
-    # "http://192.168.137.100:5000/video_feed1",
-    # "http://192.168.137.100:5000/video_feed2"
-    "http://192.168.137.101:5000/video_feed0",
-    "http://192.168.137.101:5000/video_feed1",
-    "http://192.168.137.101:5000/video_feed2"
+    "http://192.168.137.101:8080/stream",
+    "http://192.168.137.101:8081/stream",
+    "http://192.168.137.101:8082/stream"
 
 ]
 
@@ -33,27 +30,34 @@ __CAM_CONFIGS = [
         # 子文件夹同name
         "name": "front",
         # 帧率
-        "fps": 30.0,
-        # 分辨率
-        "resolution": (40, 30),
+        #"fps": 30.0,
+
+        "is_active": True,
+
+        "last_frame": None,
+        "id": 1,
     },
     {
         "is_recording": False,
         "video_writer": None,
         "name": "two",
-        "fps": 30.0,
-        "resolution": (40, 30),
-        # 缓存帧 
-        "latest_frame": None,
-        # 判断是否在进行测距或者其他处理
-        "switch": False,
+        #"fps": 30.0,
+
+        "is_active": True,
+
+        "last_frame": None,
+        "id": 2,
     },
     {
         "is_recording": False,
         "video_writer": None,
         "name": "under",
-        "fps": 30.0,
-        "resolution": (40, 30),
+        #"fps": 30.0,
+            
+        "is_active": True,
+        
+        "last_frame": None,
+        "id": 3,
     },
 ]
 
