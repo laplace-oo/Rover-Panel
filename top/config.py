@@ -2,7 +2,7 @@
 import os
 
 __4B_RASPI_IP = '192.168.137.101'
-__HTTP_PORT = 8080
+__HTTP_PORT = 5000
 
 """
 顺序：
