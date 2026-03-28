@@ -8,8 +8,7 @@ global Receive_M
 hands_num = ['主机械爪','None','副机械爪']
 speed_modes = ['慢速模式','中速模式','快速模式',]
 pid_text= ['关闭','开启']
-caches = []
-
+caches = [None, None, None]
 def receive_messages(client_socket):
     while True:
         try:
@@ -35,11 +34,14 @@ def send_messages(client_socket, status_board):
                 data_to_send = bytes.fromhex(TX_str)  # 很重要
             client_socket.send(data_to_send)
             print(data_to_send)
-            copydata = str(data_to_send)
-            datas = copydata.split("\\x")
+            datas = str(data_to_send).split("\\x")
+            datas[-5] = datas[-5][1]
+            datas[-3] = datas[-3][1]
+            datas[-2] = datas[-2][1]
             print(datas)
+            print(datas[-5], datas[-3], datas[-2])
             '''
-            7:duoji
+            -5:duoji
             0:jixiezhua
             1:wu
             2:xuanzhuandianji
@@ -54,17 +56,23 @@ def send_messages(client_socket, status_board):
             1:onpid
 
             '''
-            if datas[6] != caches[0]:
-                caches[0] = datas[6]
-                temp = datas[6].parseInt()
+            if caches[0] == None or datas[-5] != caches[0]:
+                caches[0] = datas[-5]
+                temp = int(datas[-5])
+                print(temp)
+                print(hands_num[temp])
                 status_board.set_handNumber(hands_num[temp])
-            if datas[5] != caches[1]:
-                caches[1] = datas[5]
-                temp = datas[5].parseInt()
+            if caches[1] == None or datas[-3] != caches[1]:
+                caches[1] = datas[-3]
+                temp = int(datas[-3])
+                print(temp)
+                print(speed_modes[temp])
                 status_board.set_speedMode(speed_modes[temp])
-            if datas[9] != caches[2]:
-                caches[2] = datas[9]
-                temp = datas[9].parseInt()
+            if caches[2] == None or datas[-2] != caches[2]:
+                caches[2] = datas[-2]
+                temp = int(datas[-2])
+                print(temp)
+                print(pid_text[temp])
                 status_board.set_pidText(pid_text[temp])
             
 
