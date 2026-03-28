@@ -91,15 +91,15 @@ def main(page: ft.Page):
         nonlocal recorder
         try:
             recorder = VideoRecorder(
-                stream_url=__STREAM_URL[0],      # 前置摄像头
-                cam_config=__CAM_CONFIGS[0],     # 前置配置
-                status_callback=make_status_callback(0)
+                stream_url=__STREAM_URL[1],      # 前置摄像头
+                cam_config=__CAM_CONFIGS[1],     # 前置配置
+                status_callback=make_status_callback(1)
             )
             recorder.start()
-            status_text[0].value = "录制器已启动"
+            status_text[1].value = "录制器已启动"
             page.update()
         except Exception as e:
-            status_text[0].value = f"录制器启动失败: {str(e)}"
+            status_text[1].value = f"录制器启动失败: {str(e)}"
             page.update()
     
     # 在后台线程启动录制器
@@ -312,11 +312,11 @@ def main(page: ft.Page):
     )
     
     # ========== 12. 启动控制服务器（可选）==========
-    # try:
-    #     threading.Thread(target=start_control_server, args=(status_panel,), daemon=True).start()
-    #     status_panel.set_controller_status("手柄线程已启动\r\n正在连接控制服务器...")
-    # except Exception as e:
-    #     status_panel.set_controller_status(f"手柄线程启动失败\r\n{e}")
+    try:
+        threading.Thread(target=start_control_server, args=(status_panel,), daemon=True).start()
+        status_panel.set_controller_status("手柄线程已启动\r\n正在连接控制服务器...")
+    except Exception as e:
+        status_panel.set_controller_status(f"手柄线程启动失败\r\n{e}")
 
     # ========== 13. 页面关闭时清理资源 ==========
     def on_close(e):

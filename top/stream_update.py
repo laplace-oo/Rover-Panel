@@ -10,7 +10,7 @@ from collections import deque
 class SmoothVideoPlayer:
     """平滑视频播放器 - 支持画面旋转"""
     
-    def __init__(self, snapshot_url, width, height, fps=20, rotate=0):
+    def __init__(self, snapshot_url, width, height, fps=30, rotate=0):
         self.snapshot_url = snapshot_url
         self.width = width
         self.height = height
@@ -139,13 +139,13 @@ def update_video_stream(stream_url, video_widget, status_text, page, cam_config,
     # 自动判断旋转角度
     if rotate is None:
         cam_id = cam_config.get("id", 0)
-        if cam_id == 1:  # 前置摄像头 (id=1)
+        if cam_id == 1  or cam_id == 3:  # 前置摄像头 (id=1)
             rotate = 180
         else:
             rotate = 0
     
     # 正确传递 rotate 参数
-    player = SmoothVideoPlayer(snapshot_url, width, height, fps=20, rotate=rotate)
+    player = SmoothVideoPlayer(snapshot_url, width, height, fps=30, rotate=rotate)
     player.start()
     
     if status_text:

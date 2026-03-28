@@ -12,7 +12,7 @@ class status_board:
         self.is_expanded = True
         # 仪表板尺寸
         self.width = 200
-        self.height = 160
+        self.height = 240
         # 创建串口读取器
         self.reader = serial_depth_reader(
             page=page,
@@ -58,6 +58,14 @@ class status_board:
         self.controllerStatusText = ft.Text("手柄未启动", size=12)
         # 读取线程
         self.thread = None
+
+        # pid是否开启文本
+        self.pidText = ft.Text("pid??", size=12)
+        # 机械爪编号
+        self.handNumber = ft.Text("hand??", size=12)
+        #快慢档
+        self.speedMode = ft.Text("speed??", size=12)
+
         # UI面板容器
         self.panel = ft.Container(
             width=self.width,
@@ -83,7 +91,7 @@ class status_board:
                             self.depthText,
                             self.depthValueText,
                             self.depthUnitText,
-                            self.mini_button
+                            self.mini_button,
                             ],
                         ),
                         alignment=ft.alignment.center
@@ -124,6 +132,33 @@ class status_board:
                             ]
                         ),
                         alignment=ft.alignment.center
+                    ),
+                    ft.Container(
+                        padding=2,
+                        content=ft.Row(
+                            controls=[
+                                self.pidText,
+                            ]
+                        ),
+                        alignment=ft.alignment.center
+                    ),
+                    ft.Container(
+                        padding=2,
+                        content=ft.Row(
+                            controls=[
+                                self.handNumber,
+                            ]
+                        ),
+                        alignment=ft.alignment.center
+                    ),
+                    ft.Container(
+                        padding=2,
+                        content=ft.Row(
+                            controls=[
+                                self.speedMode,
+                            ]
+                        ),
+                        alignment=ft.alignment.center
                     )
                 ]
             )
@@ -159,6 +194,22 @@ class status_board:
         self.controllerStatusText.value = status
         if self.page:
             self.page.update()
+
+    def set_pidText(self, pid_text):
+        self.pidText = 'pid：{pid_text}'
+        if self.page:
+            self.page.update()
+
+    def set_handNumber(self, hand_num: int):
+        self.handNumber = '机械爪编号：{hand_num}'
+        if self.page:
+            self.page.update()
+    
+    def set_speedMode(self, speed_mode):
+        self.speedMode = '速度模式：{speed_mode}'
+        if self.page:
+            self.page.update()
+        
 
     def get_panel(self):
         """获取仪表板的容器对象"""
@@ -340,7 +391,7 @@ class status_board:
         else:
             # 恢复到完整模式
             self.panel.width = 200
-            self.panel.height = 160
+            self.panel.height = 240
             self.mini_button.icon = ft.icons.COMPRESS
             self.panel.content.controls[1].visible = True
             self.panel.content.controls[2].visible = True
