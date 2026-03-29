@@ -196,17 +196,17 @@ class status_board:
             self.page.update()
 
     def set_pidText(self, pid_text):
-        self.pidText = 'pid：{pid_text}'
+        self.pidText.value = f"pid：{pid_text}"
         if self.page:
             self.page.update()
 
-    def set_handNumber(self, hand_num: int):
-        self.handNumber = '机械爪编号：{hand_num}'
+    def set_handNumber(self, hand_num):
+        self.handNumber.value = f"机械爪编号：{hand_num}"
         if self.page:
             self.page.update()
     
     def set_speedMode(self, speed_mode):
-        self.speedMode = '速度模式：{speed_mode}'
+        self.speedMode.value = f"快慢档：{speed_mode}"
         if self.page:
             self.page.update()
         
